@@ -1,0 +1,708 @@
+import { useState } from "react";
+import StableTokenABI from "./cusd-abi.json";
+import MinipayNFTABI from "./minipay-nft.json";
+import {
+    createPublicClient,
+    createWalletClient,
+    custom,
+    getContract,
+    http,
+    parseEther,
+    stringToHex,
+} from "viem";
+import { celoAlfajores } from "viem/chains";
+
+const publicClient = createPublicClient({
+    chain: celoAlfajores,
+    transport: http(),
+});
+
+const cUSDTokenAddress = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"; // Testnet
+const MINIPAY_NFT_CONTRACT = "0xE8F4699baba6C86DA9729b1B0a1DA1Bd4136eFeF"; // Testnet
+const MY_MINIPAY_WALLET_ADDRESS = "0x1251135a426Acd6169Eb5a93f500dB79dE1D83fc";
+
+export const useWeb3 = () => {
+    const [address, setAddress] = useState<`0x${string}` | null>(null);
+
+    const getUserAddress = async () => {
+        try {
+            if (typeof window !== "undefined" && window.ethereum) {
+                const walletClient = createWalletClient({
+                    transport: custom(window.ethereum),
+                    chain: celoAlfajores,
+                });
+
+                const [address] = await walletClient.getAddresses();
+                setAddress(address as `0x${string}`);
+            } else {
+                throw new Error("Ethereum wallet is not available.");
+            }
+        } catch (error) {
+            console.error("Error getting user address:", error);
+        }
+    };
+
+    const checkBalance = async (address: `0x${string}`) => {
+        try {
+            const stableTokenContract = getContract({
+                address: cUSDTokenAddress,
+                abi: StableTokenABI.abi,
+                client: publicClient,
+            });
+
+            const balance = await stableTokenContract.read.balanceOf([address]) as bigint;
+            return balance;
+        } catch (error) {
+            console.error("Error checking balance:", error);
+            throw new Error("Failed to check balance.");
+        }
+    };
+
+    const sendCUSD = async (amount: string, fee: string) => {
+        if (!address) {
+            throw new Error("Address is null. Please make sure the user is connected.");
+        }
+
+        try {
+            const walletClient = createWalletClient({
+                transport: custom(window.ethereum),
+                chain: celoAlfajores,
+                account: address,
+            });
+
+            const amountInWei = BigInt(parseEther(amount));
+            const feeInWei = BigInt(parseEther(fee));
+            const totalAmountInWei = amountInWei + feeInWei;
+
+            const balance = await checkBalance(address);
+            console.log(`Balance: ${balance.toString()}`);
+            console.log(`Total Amount (including fee): ${totalAmountInWei.toString()}`);
+
+            if (balance < totalAmountInWei) {
+                throw new Error("Insufficient balance to cover the amount and fee.");
+            }
+
+            // Gas estimation (using publicClient's estimateGas method)
+            const gasEstimate = await publicClient.estimateGas({
+                to: MY_MINIPAY_WALLET_ADDRESS,
+                value: totalAmountInWei,
+                account: address,
+                feeCurrency: cUSDTokenAddress,
+            });
+
+            const gasPrice = await publicClient.getGasPrice();
+            const totalCost = gasEstimate * gasPrice + totalAmountInWei;
+            console.log(`Gas Estimate: ${gasEstimate.toString()}`);
+            console.log(`Gas Price: ${gasPrice.toString()}`);
+            console.log(`Total Cost (Gas + Amount): ${totalCost.toString()}`);
+
+            if (balance < totalCost) {
+                throw new Error(`Insufficient funds for transfer (after fees). Required: ${totalCost.toString()}, Available: ${balance.toString()}`);
+            }
+
+            // Send amount to our MiniPay wallet address
+            const txAmount = await walletClient.writeContract({
+                address: cUSDTokenAddress,
+                abi: StableTokenABI.abi,
+                functionName: "transfer",
+                account: address,
+                args: [MY_MINIPAY_WALLET_ADDRESS, amountInWei],
+                feeCurrency: cUSDTokenAddress, // Set feeCurrency to cUSD token address
+            });
+
+            // Send transaction fee to our MiniPay wallet address
+            const txFee = await walletClient.writeContract({
+                address: cUSDTokenAddress,
+                abi: StableTokenABI.abi,
+                functionName: "transfer",
+                account: address,
+                args: [MY_MINIPAY_WALLET_ADDRESS, feeInWei],
+                feeCurrency: cUSDTokenAddress, // Set feeCurrency to cUSD token address
+            });
+
+            const receiptAmount = await publicClient.waitForTransactionReceipt({
+                hash: txAmount,
+            });
+
+            const receiptFee = await publicClient.waitForTransactionReceipt({
+                hash: txFee,
+            });
+
+            return {
+                receiptAmount,
+                receiptFee,
+                totalAmount: totalAmountInWei,
+                fee: feeInWei,
+            };
+        } catch (error) {
+            console.error("Error sending cUSD:", error);
+            throw new Error("Failed to send cUSD.");
+        }
+    };
+
+    const mintMinipayNFT = async () => {
+        if (!address) {
+            throw new Error("Address is null. Please make sure the user is connected.");
+        }
+
+        try {
+            const walletClient = createWalletClient({
+                transport: custom(window.ethereum),
+                chain: celoAlfajores,
+                account: address,
+            });
+
+            const tx = await walletClient.writeContract({
+                address: MINIPAY_NFT_CONTRACT,
+                abi: MinipayNFTABI.abi,
+                functionName: "safeMint",
+                account: address,
+                args: [
+                    address,
+                    "https://cdn-production-opera-website.operacdn.com/staticfiles/assets/images/sections/2023/hero-top/products/minipay/minipay__desktop@2x.a17626ddb042.webp",
+                ],
+            });
+
+            const receipt = await publicClient.waitForTransactionReceipt({
+                hash: tx,
+            });
+
+            return receipt;
+        } catch (error) {
+            console.error("Error minting MiniPay NFT:", error);
+            throw new Error("Failed to mint MiniPay NFT.");
+        }
+    };
+
+    const getNFTs = async () => {
+        if (!address) {
+            throw new Error("Address is null. Please make sure the user is connected.");
+        }
+
+        try {
+            const minipayNFTContract = getContract({
+                abi: MinipayNFTABI.abi,
+                address: MINIPAY_NFT_CONTRACT,
+                client: publicClient,
+            });
+
+            const nfts: any = await minipayNFTContract.read.getNFTsByAddress([address]);
+
+            const tokenURIs: string[] = [];
+
+            for (let i = 0; i < nfts.length; i++) {
+                const tokenURI: string = (await minipayNFTContract.read.tokenURI([nfts[i]])) as string;
+                tokenURIs.push(tokenURI);
+            }
+            return tokenURIs;
+        } catch (error) {
+            console.error("Error getting NFTs:", error);
+            throw new Error("Failed to fetch NFTs.");
+        }
+    };
+
+    const signTransaction = async () => {
+        if (!address) {
+            throw new Error("Address is null. Please make sure the user is connected.");
+        }
+
+        try {
+            const walletClient = createWalletClient({
+                transport: custom(window.ethereum),
+                chain: celoAlfajores,
+                account: address,
+            });
+
+            const res = await walletClient.signMessage({
+                account: address,
+                message: stringToHex("Hello from Celo Composer MiniPay Template!"),
+            });
+
+            return res;
+        } catch (error) {
+            console.error("Error signing transaction:", error);
+            throw new Error("Failed to sign the transaction.");
+        }
+    };
+
+    return {
+        address,
+        getUserAddress,
+        sendCUSD,
+        mintMinipayNFT,
+        getNFTs,
+        signTransaction,
+    };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+component
+
+
+
+
+import React, { useState, useEffect } from 'react';
+import { useWeb3 } from '@/contexts/useWeb3';
+import { stableTokenABI } from "@celo/abis";
+import { getContract, formatEther, createPublicClient, http, parseUnits } from "viem";
+import axios from 'axios';
+import { celo } from 'viem/chains';
+import { countryCurrencyMapping } from '@/components/CountryCurrencyMapping';
+
+const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+const USDT_TOKEN_ADDRESS = "0x617f3112bf5397D0467D315cC709EF968D9ba546"; // Example USDT address, replace with actual
+const CONSTANT_TRANSACTION_FEE = 0.02; // Example constant transaction fee in cUSD
+
+type PublicClient = ReturnType<typeof createPublicClient>;
+type Address = `0x${string}`;
+
+// Function to check cUSD balance
+async function checkCUSDBalance(publicClient: PublicClient, address: Address): Promise<string> {
+    const stableTokenContract = getContract({
+        abi: stableTokenABI,
+        address: STABLE_TOKEN_ADDRESS,
+        client: publicClient,
+    });
+
+    const balanceInWei = await stableTokenContract.read.balanceOf([address]);
+    const balanceInEthers = formatEther(balanceInWei);
+
+    return balanceInEthers;
+}
+
+const publicClient = createPublicClient({
+    chain: celo,
+    transport: http(),
+});
+
+interface PrimaryButtonProps {
+    title: string;
+    onClick: () => void;
+    widthFull?: boolean;
+    disabled?: boolean;
+    loading?: boolean;
+    className?: string;
+}
+
+export function PrimaryButton({
+    title,
+    onClick,
+    widthFull = false,
+    disabled,
+    loading,
+    className = ""
+}: PrimaryButtonProps) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled ?? loading}
+            className={`${widthFull ? "w-full" : "px-4"} ${className} font-bold bg-blue-600 rounded-2xl text-white py-3 flex justify-center items-center transition duration-300 hover:bg-blue-700`}
+        >
+            {loading ? <>Loading...</> : title}
+        </button>
+    );
+}
+
+// Custom replacer function for BigInt serialization
+function bigintReplacer(key: any, value: any) {
+    return typeof value === 'bigint' ? value.toString() : value;
+}
+
+export function SendCUSDComponent() {
+    const [selectedCountry, setSelectedCountry] = useState<string>('United States');
+    const [amount, setAmount] = useState<string>("");
+    const [convertedAmount, setConvertedAmount] = useState<string | null>(null);
+    const [phoneNumber, setPhoneNumber] = useState<string>("");
+    const [signingLoading, setSigningLoading] = useState<boolean>(false);
+    const [tx, setTx] = useState<any>(null);
+    const [currency, setCurrency] = useState<string>('USD');
+    const [totalAmount, setTotalAmount] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [feeCurrency, setFeeCurrency] = useState<string>(STABLE_TOKEN_ADDRESS); // Default to cUSD
+
+    const { sendCUSD, address, getUserAddress } = useWeb3();
+    const myMinipayAddress: Address = "0x1251135a426Acd6169Eb5a93f500dB79dE1D83fc";
+
+    useEffect(() => {
+        getUserAddress();
+    }, [getUserAddress]);
+
+    useEffect(() => {
+        const currencyCode = countryCurrencyMapping[selectedCountry];
+        setCurrency(currencyCode);
+    }, [selectedCountry]);
+
+    useEffect(() => {
+        if (currency && amount) {
+            axios.get(`https://openexchangerates.org/api/latest.json?app_id=5aec0620003e49e6b84e9414f3a6240a`)
+                .then(response => {
+                    const rates = response.data.rates;
+                    const usdToSelectedCurrency = rates[currency];
+                    const converted = (parseFloat(amount) * usdToSelectedCurrency).toFixed(2);
+                    setConvertedAmount(converted);
+                })
+                .catch(error => {
+                    console.error('Error converting currency:', error);
+                    setError('Failed to fetch conversion rates.');
+                });
+        } else {
+            setConvertedAmount(null);
+        }
+    }, [currency, amount]);
+
+    useEffect(() => {
+        if (amount) {
+            const total = (parseFloat(amount) + CONSTANT_TRANSACTION_FEE).toFixed(2);
+            setTotalAmount(total);
+        } else {
+            setTotalAmount(null);
+        }
+    }, [amount]);
+
+    async function sendingCUSD() {
+        setSigningLoading(true);
+        setError(null);
+        try {
+            if (!address) {
+                throw new Error('Address is null. Please make sure the user is connected.');
+            }
+
+            const balance = await checkCUSDBalance(publicClient, address as Address);
+            if (!balance) {
+                throw new Error('Failed to retrieve balance. Please check the address and try again.');
+            }
+
+            if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+                throw new Error('Invalid amount. Please enter a positive number.');
+            }
+
+            const amountInWei = parseUnits(amount, 18);
+            const totalAmountToDeduct = (parseFloat(amount) + CONSTANT_TRANSACTION_FEE);
+
+            if (totalAmountToDeduct > parseFloat(balance)) {
+                throw new Error('Insufficient balance to cover the amount and transaction fee.');
+            }
+
+            if (!sendCUSD) {
+                throw new Error('sendCUSD function is not available.');
+            }
+
+            const txReceipt = await sendCUSD(amount, CONSTANT_TRANSACTION_FEE.toString());
+            setTx(txReceipt);
+        } catch (error) {
+            console.error('Error sending cUSD:', error);
+            if (error instanceof Error) {
+                setError(error.message);
+            } else {
+                setError('An unexpected error occurred.');
+            }
+        } finally {
+            setSigningLoading(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-col p-4 space-y-4 bg-gray-800 rounded-lg shadow-lg">
+            <label className="text-lg font-semibold text-white">Select Country:</label>
+            <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+            >
+                {Object.keys(countryCurrencyMapping).map(country => (
+                    <option key={country} value={country}>
+                        {country}
+                    </option>
+                ))}
+            </select>
+
+            <label className="text-lg font-semibold text-white">Select Fee Currency:</label>
+            <select
+                value={feeCurrency}
+                onChange={(e) => setFeeCurrency(e.target.value)}
+                className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+            >
+                <option value={STABLE_TOKEN_ADDRESS}>cUSD</option>
+                <option value={USDT_TOKEN_ADDRESS}>USDT</option>
+            </select>
+
+            <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount to send in cUSD"
+                className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+                min="0"
+            />
+
+            <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter phone number"
+                className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+            />
+
+            {convertedAmount && (
+                <p className="text-gray-200">
+                    Sending Amount: {convertedAmount} {currency}.
+                </p>
+            )}
+
+            {totalAmount && (
+                <p className="text-gray-200">
+                    Total Amount to Deduct: {totalAmount} cUSD.
+                </p>
+            )}
+
+            {error && <p className="text-red-500">{error}</p>}
+
+            <PrimaryButton
+                title="Send"
+                onClick={sendingCUSD}
+                widthFull={true}
+                disabled={signingLoading || !address}
+                loading={signingLoading}
+                className={!address ? "opacity-50 cursor-not-allowed" : ""}
+            />
+
+            {tx && <p className="text-white">Transaction successful: {JSON.stringify(tx, bigintReplacer)}</p>}
+
+            {!address && <p className="text-red-500">Address is null. Please make sure the user is connected.</p>}
+        </div>
+    );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import PrimaryButton from "@/components/Button";
+import { SendCUSDComponent } from "@/components/SendCUSDComponent";
+import CurrencyConverter from "@/components/CurrencyConverter";
+import { useWeb3 } from "@/contexts/useWeb3";
+import { useEffect, useState } from "react";
+import TransferForm from "@/components/TransferForm";
+import { getContract, formatEther, createPublicClient, http } from "viem";
+import { celo } from "viem/chains";
+import { stableTokenABI } from "@celo/abis";
+
+const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+
+// Define types for the parameters
+async function checkCUSDBalance(publicClient: ReturnType<typeof createPublicClient>, address: `0x${string}`): Promise<string> {
+    const stableTokenContract = getContract({
+        abi: stableTokenABI,
+        address: STABLE_TOKEN_ADDRESS,
+        client: publicClient,
+    });
+
+    // Call balanceOf on the contract
+    const balanceInWei = await stableTokenContract.read.balanceOf([address]);
+
+    // Convert the balance from Wei to Ether format
+    const balanceInEthers = formatEther(balanceInWei);
+
+    return balanceInEthers;
+}
+
+const publicClient = createPublicClient({
+    chain: celo,
+    transport: http(),
+}); // Mainnet client for Celo
+
+export default function Home() {
+    const { address, getUserAddress, mintMinipayNFT, getNFTs, signTransaction } = useWeb3();
+    const [cUSDLoading, setCUSDLoading] = useState(false);
+    const [nftLoading, setNFTLoading] = useState(false);
+    const [signingLoading, setSigningLoading] = useState(false);
+    const [userOwnedNFTs, setUserOwnedNFTs] = useState<string[]>([]);
+    const [tx, setTx] = useState<any>(undefined);
+    const [balance, setBalance] = useState<string>("");
+    const [blockDifficulty, setBlockDifficulty] = useState<bigint | null>(null);
+
+    useEffect(() => {
+        getUserAddress();
+    }, [getUserAddress]);
+
+    useEffect(() => {
+        const getData = async () => {
+            const tokenURIs = await getNFTs();
+            setUserOwnedNFTs(tokenURIs);
+        };
+        if (address) {
+            getData();
+        }
+    }, [address, getNFTs]);
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            if (address) {
+                const balance = await checkCUSDBalance(publicClient, address as `0x${string}`);
+                setBalance(balance);
+            }
+        };
+        fetchBalance();
+    }, [address]);
+
+    // Fetch block data and handle difficulty
+    useEffect(() => {
+        const fetchBlockData = async () => {
+            try {
+                const block = await publicClient.getBlock();
+
+                // Ensure difficulty is a BigInt, with a fallback to 0n if undefined
+                const blockDifficulty = block.difficulty ?? BigInt(0);
+
+                setBlockDifficulty(blockDifficulty);
+            } catch (error) {
+                console.error('Error fetching block data:', error);
+            }
+        };
+
+        fetchBlockData();
+    }, []);
+
+    async function signMessage() {
+        setCUSDLoading(true);
+        try {
+            await signTransaction();
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setCUSDLoading(false);
+        }
+    }
+
+    async function mintNFT() {
+        setNFTLoading(true);
+        try {
+            const tx = await mintMinipayNFT();
+            const tokenURIs = await getNFTs();
+            setUserOwnedNFTs(tokenURIs);
+            setTx(tx);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setNFTLoading(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-col items-center justify-center">
+            {!address && (
+                <div className="h1">Please install Metamask and connect.</div>
+            )}
+            {<div>
+                {/* <h1>Flutterwave Transfer</h1>
+                <TransferForm
+                    onSuccess={(message) => console.log('Success:', message)}
+                    onError={(message) => console.log('Error:', message)}
+                /> */}
+            </div>}
+
+            {address && (
+                <>
+                    <div className="text-center h2">
+                        Your address:{" "}
+                        <span className="text-sm font-bold">{address}</span>
+                    </div>
+                    <div className="text-center h2">
+                        Your cUSD Balance:{" "}
+                        <span className="text-sm font-bold">{balance} cUSD</span>
+                    </div>
+                    <div className="text-center h2">
+                        Latest Block Difficulty:{" "}
+                        <span className="text-sm font-bold">{blockDifficulty?.toString() || "Loading..."}</span>
+                    </div>
+                    {tx && (
+                        <p className="mt-4 font-bold">
+                            Tx Completed:{" "}
+                            {(tx.transactionHash as string).substring(0, 6)}
+                            ...
+                            {(tx.transactionHash as string).substring(
+                                tx.transactionHash.length - 6,
+                                tx.transactionHash.length
+                            )}
+                        </p>
+                    )}
+                    <div className="w-full px-3 mt-7">
+                        <SendCUSDComponent />
+                    </div>
+
+                    {userOwnedNFTs.length > 0 ? (
+                        <div className="flex flex-col items-center justify-center w-full mt-7">
+                            <p className="font-bold">My NFTs</p>
+                            <div className="grid w-full grid-cols-2 gap-3 px-2 mt-3">
+                                {userOwnedNFTs.map((tokenURI, index) => (
+                                    <div
+                                        key={index}
+                                        className="p-2 border-[3px] border-colors-secondary rounded-xl"
+                                    >
+                                        {/* NFT content goes here */}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-5"></div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}

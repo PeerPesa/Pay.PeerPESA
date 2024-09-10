@@ -4,12 +4,14 @@ type Props = {
   widthFull?: boolean;
   disabled?: boolean;
   loading?: boolean;
+  name?: string;
   className?: string;
 };
 
 function PrimaryButton({
   title,
   onClick,
+  name,
   widthFull = false,
   disabled,
   loading,
@@ -18,6 +20,7 @@ function PrimaryButton({
   return (
     <button
       onClick={onClick}
+      name={name}
       disabled={disabled ?? loading}
       className={`${
         widthFull ? "w-full" : "px-4"
@@ -29,3 +32,4 @@ function PrimaryButton({
 }
 
 export default PrimaryButton;
+// pioneer jerry

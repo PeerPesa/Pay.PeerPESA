@@ -1,51 +1,63 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import PrimaryButton from "@/components/Button";
+import { SendCUSDComponent } from "@/components/SendCUSDComponent";
 import { useWeb3 } from "@/contexts/useWeb3";
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import { getContract, formatEther, createPublicClient, http } from "viem";
+import { celo } from "viem/chains";
+import { stableTokenABI } from "@celo/abis";
 
+const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+// Define types for the parameters
+async function checkCUSDBalance(publicClient: ReturnType<typeof createPublicClient>, address: `0x${string}`): Promise<string> {
+    const stableTokenContract = getContract({
+        abi: stableTokenABI,
+        address: STABLE_TOKEN_ADDRESS,
+        client: publicClient,
+    });
+    const balanceInWei = await stableTokenContract.read.balanceOf([address]);
+    const balanceInEthers = formatEther(balanceInWei);
+    return parseFloat(balanceInEthers).toFixed(2);
+}
+
+const publicClient = createPublicClient({
+    chain: celo,
+    transport: http(),
+}); 
 export default function Home() {
-    const {
-        address,
-        getUserAddress,
-        sendCUSD,
-        mintMinipayNFT,
-        getNFTs,
-        signTransaction,
-    } = useWeb3();
+    const { address, getUserAddress, mintMinipayNFT, signTransaction } = useWeb3();
     const [cUSDLoading, setCUSDLoading] = useState(false);
     const [nftLoading, setNFTLoading] = useState(false);
     const [signingLoading, setSigningLoading] = useState(false);
-    const [userOwnedNFTs, setUserOwnedNFTs] = useState<string[]>([]);
     const [tx, setTx] = useState<any>(undefined);
+    const [balance, setBalance] = useState<string>("");
+    const [blockDifficulty, setBlockDifficulty] = useState<bigint | null>(null);
 
     useEffect(() => {
         getUserAddress();
-    }, []);
+    }, [getUserAddress]);
 
     useEffect(() => {
-        const getData = async () => {
-            const tokenURIs = await getNFTs();
-            setUserOwnedNFTs(tokenURIs);
-        };
-        if (address) {
-            getData();
-        }
-    }, [address]);
-
-    async function sendingCUSD() {
-        if (address) {
-            setSigningLoading(true);
-            try {
-                const tx = await sendCUSD(address, "0.1");
-                setTx(tx);
-            } catch (error) {
-                console.log(error);
-            } finally {
-                setSigningLoading(false);
+        const fetchBalance = async () => {
+            if (address) {
+                const balance = await checkCUSDBalance(publicClient, address as `0x${string}`);
+                setBalance(balance);
             }
-        }
-    }
+        };
+        fetchBalance();
+    }, [address]);
+    useEffect(() => {
+        const fetchBlockData = async () => {
+            try {
+                const block = await publicClient.getBlock();
+                const blockDifficulty = block.difficulty ?? BigInt(0);
+
+                setBlockDifficulty(blockDifficulty);
+            } catch (error) {
+                console.error('Error fetching block data:', error);
+            }
+        };
+
+        fetchBlockData();
+    }, []);
 
     async function signMessage() {
         setCUSDLoading(true);
@@ -62,8 +74,6 @@ export default function Home() {
         setNFTLoading(true);
         try {
             const tx = await mintMinipayNFT();
-            const tokenURIs = await getNFTs();
-            setUserOwnedNFTs(tokenURIs);
             setTx(tx);
         } catch (error) {
             console.log(error);
@@ -73,24 +83,34 @@ export default function Home() {
     }
 
     return (
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-col items-center justify-center">
             {!address && (
-                <div className="h1">Please install Metamask and connect.</div>
+                <div className="h1">nothing will be visible untill you run this on minipay .</div>
             )}
-            {address && (
-                <div className="h1">
-                    There you go... a canvas for your next Minipay project!
-                </div>
-            )}
+            {<div>
+                {/* <h1>Flutterwave Transfer</h1>
+                <TransferForm
+                    onSuccess={(message) => console.log('Success:', message)}
+                    onError={(message) => console.log('Error:', message)}
+                /> */}
+            </div>}
 
             {address && (
                 <>
-                    <div className="h2 text-center">
+                    <div className="text-center h2">
                         Your address:{" "}
-                        <span className="font-bold text-sm">{address}</span>
+                        <span className="text-sm font-bold">{address}</span>
+                    </div>
+                    <div className="text-center h2">
+                        Your cUSD Balance:{" "}
+                        <span className="text-sm font-bold">{balance} cUSD</span>
+                    </div>
+                    <div className="text-center h2">
+                        Latest Block Difficulty:{" "}
+                        <span className="text-sm font-bold">{blockDifficulty?.toString() || "Loading..."}</span>
                     </div>
                     {tx && (
-                        <p className="font-bold mt-4">
+                        <p className="mt-4 font-bold">
                             Tx Completed:{" "}
                             {(tx.transactionHash as string).substring(0, 6)}
                             ...
@@ -101,57 +121,11 @@ export default function Home() {
                         </p>
                     )}
                     <div className="w-full px-3 mt-7">
-                        <PrimaryButton
-                            loading={signingLoading}
-                            onClick={sendingCUSD}
-                            title="Send 0.1 cUSD to your own address"
-                            widthFull
-                        />
-                    </div>
-
-                    <div className="w-full px-3 mt-6">
-                        <PrimaryButton
-                            loading={cUSDLoading}
-                            onClick={signMessage}
-                            title="Sign a Message"
-                            widthFull
-                        />
-                    </div>
-
-                    {userOwnedNFTs.length > 0 ? (
-                        <div className="flex flex-col items-center justify-center w-full mt-7">
-                            <p className="font-bold">My NFTs</p>
-                            <div className="w-full grid grid-cols-2 gap-3 mt-3 px-2">
-                                {userOwnedNFTs.map((tokenURI, index) => (
-                                    <div
-                                        key={index}
-                                        className="p-2 border-[3px] border-colors-secondary rounded-xl"
-                                    >
-                                        <Image
-                                            alt="MINIPAY NFT"
-                                            src={tokenURI}
-                                            className="w-[160px] h-[200px] object-cover"
-                                            width={160}
-                                            height={200}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="mt-5">You do not have any NFTs yet</div>
-                    )}
-
-                    <div className="w-full px-3 mt-5">
-                        <PrimaryButton
-                            loading={nftLoading}
-                            onClick={mintNFT}
-                            title="Mint Minipay NFT"
-                            widthFull
-                        />
+                        <SendCUSDComponent />
                     </div>
                 </>
             )}
         </div>
     );
 }
+// pioneer jerry
