@@ -1,9 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import Cors from 'cors';
+
 const cors = Cors({
     methods: ['POST', 'GET', 'HEAD'],
 });
+
 function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: any) {
     return new Promise((resolve, reject) => {
         fn(req, res, (result: any) => {
@@ -14,7 +16,9 @@ function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: any) {
         });
     });
 }
+
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     await runMiddleware(req, res, cors);
 
@@ -25,21 +29,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { amount, receiver, currency, country, operator } = req.body;
 
     try {
-        const account_bank = operator|| "MPS";
+        const account_bank = operator || "MPS";
         const account_number = receiver;
         console.log('Initiating Flutterwave transfer:', { amount, account_number, currency, country, account_bank });
 
         const response = await axios.post('https://api.flutterwave.com/v3/transfers', {
-            account_bank: account_bank, 
+            account_bank: account_bank,
             account_number: account_number,
             beneficiary_name: "jerry ouma",    //my name is just here temporary
             amount: amount,
             currency: currency,
             reference: `transfer_${Date.now()}`,
-            callback_url:"https://2613-197-232-61-238.ngrok-free.app/api/flutterwave-callback",
+            callback_url: "https://2613-197-232-61-238.ngrok-free.app/api/flutterwave-callback",
             debit_currency: "NGN",
             meta: {
-                sender:"peerpesa",
+                sender: "peerpesa",
                 sender_country: "ZA",
                 mobile_number: "23457558595"
             }

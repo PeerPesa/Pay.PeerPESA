@@ -12,6 +12,7 @@ interface PrimaryButtonProps {
     loading?: boolean;
     className?: string;
 }
+
 export function PrimaryButton({
     title,
     onClick,
@@ -33,9 +34,10 @@ export function PrimaryButton({
 
 interface SendCUSDComponentProps {
     token: string;
+    onModalOpen: (message: string, details: any) => void;
 }
 
-export function SendCUSDComponent({ token }: SendCUSDComponentProps) {
+export function SendCUSDComponent({ token, onModalOpen }: SendCUSDComponentProps) {
     const [selectedCountry, setSelectedCountry] = useState<string>('');
     const [amount, setAmount] = useState<string>("");
     const [convertedAmount, setConvertedAmount] = useState<string | null>(null);
@@ -110,7 +112,7 @@ export function SendCUSDComponent({ token }: SendCUSDComponentProps) {
 
             if (isSuccess) {
                 const csrfToken = await getCsrfToken();
-                await axios.post('/api/flutterwave-transfer', {
+                const response = await axios.post('/api/flutterwave-transfer', {
                     amount: convertedAmount,
                     receiver: `${getCountryPrefix(selectedCountry)}${phoneNumber}`,
                     currency: currency,
@@ -122,6 +124,21 @@ export function SendCUSDComponent({ token }: SendCUSDComponentProps) {
                     },
                     withCredentials: true,
                 });
+
+                const { data } = response;
+                console.log('Transfer Response:', data); // Log the response data
+                const modalData = {
+                    status: data.status,
+                    id: data.data.id,
+                    currency: data.data.currency,
+                    account_number: data.data.account_number,
+                    reference: data.data.reference,
+                    sender: data.data.meta && data.data.meta[0] ? data.data.meta[0].Sender : 'N/A',
+                    amount: convertedAmount, // Add the amount to the modal data
+                };
+                onModalOpen("Transaction Successful", modalData);
+            } else {
+                onModalOpen("Transaction Failed", null);
             }
         } catch (error) {
             console.error('Error sending token:', error);
@@ -130,6 +147,7 @@ export function SendCUSDComponent({ token }: SendCUSDComponentProps) {
             } else {
                 setError('An unexpected error occurred.');
             }
+            onModalOpen("Transaction Error", error);
         } finally {
             setSigningLoading(false);
         }

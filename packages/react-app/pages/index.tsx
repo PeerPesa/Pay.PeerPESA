@@ -2,6 +2,7 @@ import { SendCUSDComponent } from "@/components/SendCUSDComponent";
 import { useWeb3 } from "@/contexts/useWeb3";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import Modal from '@/components/ouma'; 
 import { formatEther } from "viem";
 
 const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
@@ -14,6 +15,9 @@ export default function Home() {
     const [tx, setTx] = useState<any>(undefined);
     const [balance, setBalance] = useState<string>("");
     const [token, setToken] = useState<string>('cUSD');
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [modalMessage, setModalMessage] = useState<string>('');
+    const [modalDetails, setModalDetails] = useState<any>(null);
 
     useEffect(() => {
         getUserAddress();
@@ -52,6 +56,18 @@ export default function Home() {
             setNFTLoading(false);
         }
     }
+
+    const handleModalOpen = (message: string, details: any) => {
+        setModalMessage(message);
+        setModalDetails(details);
+        setIsModalOpen(true);
+    };
+
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setModalMessage('');
+        setModalDetails(null);
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen py-8 bg-gray-100">
@@ -106,6 +122,7 @@ export default function Home() {
                     )}
                     <div className="w-full px-3 mt-7">
                         <label className="block mb-2 text-lg font-semibold text-gray-700">Select Token:</label>
+                        
                         <select
                             value={token}
                             onChange={(e) => setToken(e.target.value)}
@@ -114,10 +131,12 @@ export default function Home() {
                             <option value="cUSD">cUSD</option>
                             <option value="USDT">USDT</option>
                         </select>
-                        <SendCUSDComponent token={token} />
+                        <SendCUSDComponent token={token} onModalOpen={handleModalOpen} />
                     </div>
                 </>
             )}
+
+            <Modal isOpen={isModalOpen} onClose={handleModalClose} message={modalMessage} details={modalDetails} />
         </div>
     );
 }
