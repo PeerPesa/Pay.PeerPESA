@@ -18,7 +18,7 @@ export default function Header() {
   }, []);
 
   return (
-    <Disclosure as="nav" className="border-b border-black bg-colors-primary">
+    <Disclosure as="nav" className="border-b border-black bg-colors-white">
       {({ open }) => (
         <>
           <div className="px-2 mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -36,13 +36,14 @@ export default function Header() {
               </div>
               <div className="flex items-center justify-center flex-1 sm:items-stretch sm:justify-start">
                 <div className="flex items-center flex-shrink-0">
-                  <Image
-                    className="block w-auto h-8 sm:block lg:block"
-                    src="/logo.svg"
-                    width="24"
-                    height="24"
-                    alt="Celo Logo"
-                  />
+                <Image
+                 className="block w-auto h-8 pl-4 sm:block lg:block"
+                       src="/logo.svg"
+                       width="24"
+                        height="24"
+                        alt="peerpesa logo"
+                        />
+
                 </div>
                 <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                   <a

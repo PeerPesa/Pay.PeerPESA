@@ -18,9 +18,9 @@ const publicClient = createPublicClient({
 });
 
 const cUSDTokenAddress = process.env.NEXT_PUBLIC_CUSD_TOKEN_ADDRESS as `0x${string}`;
+const usdtTokenAddress = process.env.NEXT_PUBLIC_USDT_TOKEN_ADDRESS as `0x${string}`;
 const MINIPAY_NFT_CONTRACT = process.env.NEXT_PUBLIC_MINIPAY_NFT_CONTRACT as `0x${string}`;
 const MY_MINIPAY_WALLET_ADDRESS = process.env.NEXT_PUBLIC_MY_MINIPAY_WALLET_ADDRESS as `0x${string}`;
-const CONSTANT_TRANSACTION_FEE = 0.02; // Example constant transaction fee in cUSD
 
 export const useWeb3 = () => {
     const [address, setAddress] = useState<`0x${string}` | null>(null);
@@ -43,10 +43,10 @@ export const useWeb3 = () => {
         }
     };
 
-    const checkBalance = async (userAddress: `0x${string}`) => {
+    const checkBalance = async (userAddress: `0x${string}`, tokenAddress: `0x${string}`) => {
         try {
             const stableTokenContract = getContract({
-                address: cUSDTokenAddress,
+                address: tokenAddress,
                 abi: StableTokenABI.abi,
                 client: publicClient,
             });
@@ -59,10 +59,12 @@ export const useWeb3 = () => {
         }
     };
 
-    const sendCUSD = async (amount: string) => {
+    const sendToken = async (amount: string, token: string) => {
         if (!address) {
             throw new Error("Address is null. Please make sure the user is connected.");
         }
+
+        const tokenAddress = token === 'cUSD' ? cUSDTokenAddress : usdtTokenAddress;
 
         try {
             const walletClient = createWalletClient({
@@ -70,11 +72,10 @@ export const useWeb3 = () => {
                 chain: celo,
                 account: address,
             });
-
+            const balance = await checkBalance(address, tokenAddress);
             const amountInWei = BigInt(parseEther(amount));
-            const totalAmountToDeduct = BigInt(parseEther((parseFloat(amount) + CONSTANT_TRANSACTION_FEE).toString()));
-
-            const balance = await checkBalance(address);
+            const transactionFee = BigInt(parseEther((parseFloat(amount) * 0.002).toString())); 
+            const totalAmountToDeduct = amountInWei + transactionFee;
             console.log(`Balance: ${balance.toString()}`);
             console.log(`Total amount to deduct: ${totalAmountToDeduct.toString()}`);
 
@@ -83,7 +84,7 @@ export const useWeb3 = () => {
             }
 
             const tx = await walletClient.writeContract({
-                address: cUSDTokenAddress,
+                address: tokenAddress,
                 abi: StableTokenABI.abi,
                 functionName: "transfer",
                 account: address,
@@ -94,10 +95,10 @@ export const useWeb3 = () => {
                 hash: tx,
             });
 
-            return receipt.transactionHash; // Return the transaction hash
+            return receipt.transactionHash; 
         } catch (error) {
-            console.error("Error sending cUSD:", error);
-            throw new Error("Failed to send cUSD.");
+            console.error("Error sending token:", error);
+            throw new Error("Failed to send token.");
         }
     };
 
@@ -183,7 +184,6 @@ export const useWeb3 = () => {
             "Malawi": "265",
             "senegal": "221",
             "Zambia": "260",
-
         };
         return countryCodes[country] || "";
     };
@@ -208,11 +208,12 @@ export const useWeb3 = () => {
     return {
         address,
         getUserAddress,
-        sendCUSD,
+        sendToken,
         mintMinipayNFT,
         signTransaction,
         checkTransactionStatus,
         getCountryPrefix,
         getMobileOperators,
+        checkBalance, 
     };
 };

@@ -1,3 +1,51 @@
+
+ const sendCUSD = async (amount: string) => {
+        if (!address) {
+            throw new Error("Address is null. Please make sure the user is connected.");
+        }
+
+        try {
+            const walletClient = createWalletClient({
+                transport: custom(window.ethereum),
+                chain: celo,
+                account: address,
+            });
+
+            const amountInWei = BigInt(parseEther(amount));
+            const transactionFee = BigInt(parseEther((parseFloat(amount) * 0.002).toString())); // 0.2% transaction fee
+            const totalAmountToDeduct = amountInWei + transactionFee;
+
+            const balance = await checkBalance(address);
+            console.log(`Balance: ${balance.toString()}`);
+            console.log(`Total amount to deduct: ${totalAmountToDeduct.toString()}`);
+
+            if (balance < totalAmountToDeduct) {
+                throw new Error("Insufficient balance to cover the amount and transaction fee.");
+            }
+
+            const tx = await walletClient.writeContract({
+                address: cUSDTokenAddress,
+                abi: StableTokenABI.abi,
+                functionName: "transfer",
+                account: address,
+                args: [MY_MINIPAY_WALLET_ADDRESS, totalAmountToDeduct],
+            });
+
+            const receipt = await publicClient.waitForTransactionReceipt({
+                hash: tx,
+            });
+
+            return receipt.transactionHash; // Return the transaction hash
+        } catch (error) {
+            console.error("Error sending cUSD:", error);
+            throw new Error("Failed to send cUSD.");
+        }
+    };
+
+
+
+
+
 import { useState } from "react";
 import StableTokenABI from "./cusd-abi.json";
 import MinipayNFTABI from "./minipay-nft.json";

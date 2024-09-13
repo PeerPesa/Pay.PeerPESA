@@ -30,7 +30,12 @@ export function PrimaryButton({
         </button>
     );
 }
-export function SendCUSDComponent() {
+
+interface SendCUSDComponentProps {
+    token: string;
+}
+
+export function SendCUSDComponent({ token }: SendCUSDComponentProps) {
     const [selectedCountry, setSelectedCountry] = useState<string>('');
     const [amount, setAmount] = useState<string>("");
     const [convertedAmount, setConvertedAmount] = useState<string | null>(null);
@@ -44,7 +49,7 @@ export function SendCUSDComponent() {
     const [txStatus, setTxStatus] = useState<string | null>(null);
     const [operators, setOperators] = useState<{ name: string, code: string }[]>([]);
 
-    const { sendCUSD, address, getUserAddress, checkTransactionStatus, getCountryPrefix, getMobileOperators } = useWeb3();
+    const { sendToken, address, getUserAddress, checkTransactionStatus, getCountryPrefix, getMobileOperators } = useWeb3();
 
     useEffect(() => {
         getUserAddress();
@@ -86,7 +91,7 @@ export function SendCUSDComponent() {
         }
     }, [amount]);
 
-    async function sendingCUSD() {
+    async function sendingToken() {
         setSigningLoading(true);
         setError(null);
         try {
@@ -98,7 +103,7 @@ export function SendCUSDComponent() {
                 throw new Error('Invalid amount. Please enter a positive number.');
             }
 
-            const txHash = await sendCUSD(amount);
+            const txHash = await sendToken(amount, token);
             setTx(txHash);
             const isSuccess = await checkTransactionStatus(txHash);
             setTxStatus(isSuccess ? "Transaction successful" : "Transaction failed");
@@ -119,7 +124,7 @@ export function SendCUSDComponent() {
                 });
             }
         } catch (error) {
-            console.error('Error sending cUSD:', error);
+            console.error('Error sending token:', error);
             if (error instanceof Error) {
                 setError(error.message);
             } else {
@@ -153,7 +158,7 @@ export function SendCUSDComponent() {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount to send in cUSD"
+                placeholder="Enter amount to send"
                 className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
                 min="0"
                 required
@@ -191,7 +196,7 @@ export function SendCUSDComponent() {
 
             {totalAmount && (
                 <p className="text-gray-200">
-                    Total Amount to Deduct: {totalAmount} cUSD.
+                    Total Amount to Deduct: {totalAmount} {token}.
                 </p>
             )}
 
@@ -199,7 +204,7 @@ export function SendCUSDComponent() {
 
             <PrimaryButton
                 title="Send"
-                onClick={sendingCUSD}
+                onClick={sendingToken}
                 widthFull={true}
                 disabled={signingLoading || !address || !isFormValid}
                 loading={signingLoading}
