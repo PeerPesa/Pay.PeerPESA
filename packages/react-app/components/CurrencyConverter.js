@@ -15,7 +15,7 @@ const CurrencyConverter = () => {
 
   useEffect(() => {
     if (currency && amount) {
-      axios.get(`https://openexchangerates.org/api/latest.json?app_id=`)
+      axios.get(`https://openexchangerates.org/api/latest.json?app_id=${process.env.NEXT_PUBLIC_OPENEXCHANGERATES_APP_ID}`)
         .then(response => {
           const rates = response.data.rates;
           const usdToSelectedCurrency = rates[currency];

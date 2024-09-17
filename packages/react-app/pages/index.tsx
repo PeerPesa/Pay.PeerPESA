@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import Modal from '@/components/ouma'; 
 import { formatEther } from "viem";
+import { BuyComponent } from "@/components/BuyComponent";
 
 const STABLE_TOKEN_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
 
@@ -18,6 +19,8 @@ export default function Home() {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [modalMessage, setModalMessage] = useState<string>('');
     const [modalDetails, setModalDetails] = useState<any>(null);
+    const [mode, setMode] = useState<string>('send'); // Add state for mode
+    const [step, setStep] = useState<number>(1); // Add state for step
 
     useEffect(() => {
         getUserAddress();
@@ -69,9 +72,22 @@ export default function Home() {
         setModalDetails(null);
     };
 
+    const handleModeChange = (newMode: string) => {
+        setMode(newMode);
+        setStep(1); // Reset step to 1 when mode changes
+    };
+
+    const getProgressBarWidth = () => {
+        if (mode === 'send') {
+            return `${(step - 1) / 3 * 100}%`; // For SendCUSDComponent, 4 steps
+        } else {
+            return `${(step - 1) / 4 * 100}%`; // For BuyComponent, 5 steps
+        }
+    };
+
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen py-8 bg-gray-100">
-            <div className="flex items-center justify-between w-full px-4 py-2 bg-white shadow-md" style={{ marginTop: '-5px' }}>
+        <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 min-w-1/6">
+            <div className="flex items-center justify-between w-full px-4 py-2 bg-white shadow-md">
                 {address && (
                     <div className="flex items-center">
                         <Image
@@ -85,7 +101,7 @@ export default function Home() {
                 )}
                 {address && (
                     <div className="text-right">
-                        <h2 className="text-lg font-semibold">Balance:</h2>
+                        <h2 className="text-lg font-bold text-black">Balance:</h2>
                         <p className="text-sm font-bold text-gray-700">{balance} {token}</p>
                     </div>
                 )}
@@ -120,18 +136,61 @@ export default function Home() {
                             )}
                         </p>
                     )}
-                    <div className="w-full px-3 mt-7">
-                        <label className="block mb-2 text-lg font-semibold text-gray-700">Select Token:</label>
-                        
-                        <select
-                            value={token}
-                            onChange={(e) => setToken(e.target.value)}
-                            className="w-full px-4 py-3 mb-6 font-bold text-black bg-white border border-gray-300 rounded-2xl"
-                        >
-                            <option value="cUSD">cUSD</option>
-                            <option value="USDT">USDT</option>
-                        </select>
-                        <SendCUSDComponent token={token} onModalOpen={handleModalOpen} />
+                    <div className="w-full px-3 mt-4">
+                        {mode === 'send' && (
+                            <>
+                                <label className="block mb-2 text-lg font-semibold text-gray-700">Select Token:</label>
+                                <select
+                                    value={token}
+                                    onChange={(e) => setToken(e.target.value)}
+                                    className="w-full px-4 py-3 mb-6 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+                                >
+                                    <option value="cUSD">cUSD</option>
+                                    <option value="USDT">USDT</option>
+                                </select>
+                            </>
+                        )}
+
+                        <div className="flex justify-center mb-6">
+                            <button
+                                onClick={() => handleModeChange('send')}
+                                className={`px-4 py-2 font-bold text-white rounded-2xl flex items-center ${mode === 'send' ? 'bg-[#39a96c]' : 'bg-gray-500'}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 mr-2">
+                                    <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                                </svg>
+                                Send
+                            </button>
+                            <button
+                                onClick={() => handleModeChange('buy')}
+                                className={`px-4 py-2 ml-4 font-bold text-white rounded-2xl flex items-center ${mode === 'buy' ? 'bg-[#39a96c]' : 'bg-gray-500'}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 mr-2">
+                                    <path d="M10.464 8.746c.227-.18.497-.311.786-.394v2.795a2.252 2.252 0 0 1-.786-.393c-.394-.313-.546-.681-.546-1.004 0-.323.152-.691.546-1.004ZM12.75 15.662v-2.824c.347.085.664.228.921.421.427.32.579.686.579.991 0 .305-.152.671-.579.991a2.534 2.534 0 0 1-.921.42Z" />
+                                    <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v.816a3.836 3.836 0 0 0-1.72.756c-.712.566-1.112 1.35-1.112 2.178 0 .829.4 1.612 1.113 2.178.502.4 1.102.647 1.719.756v2.978a2.536 2.536 0 0 1-.921-.421l-.879-.66a.75.75 0 0 0-.9 1.2l.879.66c.533.4 1.169.645 1.821.75V18a.75.75 0 0 0 1.5 0v-.81a4.124 4.124 0 0 0 1.821-.749c.745-.559 1.179-1.344 1.179-2.191 0-.847-.434-1.632-1.179-2.191a4.122 4.122 0 0 0-1.821-.75V8.354c.29.082.559.213.786.393l.415.33a.75.75 0 0 0 .933-1.175l-.415-.33a3.836 3.836 0 0 0-1.719-.755V6Z" clipRule="evenodd" />
+                                </svg>
+                                Buy
+                            </button>
+                        </div>
+                        {/* Steps for BuyComponent */}
+                        <div className="relative w-full pb-2 mb-4">
+                            <div className="flex justify-between mb-2">
+                                <div className="sr-only">Step 1</div>
+                                <div className="sr-only">Step 2</div>
+                                <div className="sr-only">Step 3</div>
+                                {mode === 'buy' && <div className="sr-only">Step 4</div>}
+                            </div>
+                            <div className="absolute w-full h-3 bg-gray-200 rounded-full top-2"></div>
+                            <div
+                                className="absolute h-3 duration-300 bg-[#39a96c] rounded-full top-2 transition-width"
+                                style={{ width: getProgressBarWidth() }}
+                            ></div>
+                        </div>
+                        {mode === 'send' ? (
+                            <SendCUSDComponent token={token} onModalOpen={handleModalOpen} step={step} setStep={setStep} />
+                        ) : (
+                            <BuyComponent step={step} setStep={setStep} />
+                        )}
                     </div>
                 </>
             )}
