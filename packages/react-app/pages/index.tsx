@@ -85,30 +85,66 @@ export default function Home() {
         }
     };
 
+    const formatAddress = (address: string) => {
+        return `${address.substring(0, 5)}***${address.substring(address.length - 4)}`;
+    };
+
     return (
-        <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 min-w-1/6">
-            <div className="flex items-center justify-between w-full px-4 py-2 bg-white shadow-md">
+        <div className="flex flex-col items-center justify-start min-h-screen bg-gray-200 font-harmony">
+ {/* Card Container with blog */}
+{!address && (
+    <div className="w-full max-w-sm px-6 py-2 mt-4 bg-white shadow-xl rounded-3xl sm:w-1/3 lg:w-1/4">
+        <div className="flex flex-row items-start">
+            {/* Description */}
+            <div className="w-1/2 pr-4">
+                <p className="mt-2 text-sm font-bold text-black-600">
+                    Send Stablecoins from MiniPay to <span className="text-green-600">Mobile money</span>, Buy Stablecoins on the Go!
+                </p>
+            </div>
+            
+            {/* Image */}
+            <div className="w-1/2">
+                <Image
+                    src="/blog.png"
+                    width={400}
+                    height={400}
+                    alt="New Image"
+                    layout="responsive"
+                    className="rounded-lg"
+                />
+            </div>
+        </div>
+
+        {/* Icon and Balance Information */}
+        <div className="flex items-center justify-between mt-4">
+            {/* User Icon */}
+            <div className="flex flex-col items-center">
+                <Image
+                    src="/system-regular-8-account-hover-account.gif"
+                    width={40}
+                    height={40}
+                    alt="User Icon"
+                    className="rounded-full"
+                />
                 {address && (
-                    <div className="flex items-center">
-                        <Image
-                            src="/icons8-account.gif"
-                            width={40}
-                            height={40}
-                            alt="User Icon"
-                            className="rounded-full"
-                        />
-                    </div>
-                )}
-                {address && (
-                    <div className="text-right">
-                        <h2 className="text-lg font-bold text-black">Balance:</h2>
-                        <p className="text-sm font-bold text-gray-700">{balance} {token}</p>
-                    </div>
+                    <p className="mt-2 text-sm font-bold text-gray-700">
+                        {formatAddress(address)}
+                    </p>
                 )}
             </div>
 
-            {!address && (
-                <div className="mt-8 text-center">
+            {/* Balance Information */}
+            <div className="text-right">
+                <h2 className="text-lg font-bold text-black">Balance:</h2>
+                <p className="text-sm font-bold text-gray-700">{balance} {token}</p>
+            </div>
+        </div>
+    </div>
+)}
+
+
+            {address && (
+                <div className="mt-8 text-center font-harmony">
                     <p className="mb-4 text-lg font-bold">
                         Nothing will be visible until you run this on MiniPay. Alternatively, you can use the button above to connect your wallet.
                     </p>
@@ -123,7 +159,7 @@ export default function Home() {
                 </div>
             )}
 
-            {address && (
+            {! address && (
                 <>
                     {tx && (
                         <p className="mt-4 font-bold text-center text-green-600">
@@ -139,15 +175,16 @@ export default function Home() {
                     <div className="w-full px-3 mt-4">
                         {mode === 'send' && (
                             <>
-                                <label className="block mb-2 text-lg font-semibold text-gray-700">Select Token:</label>
+                               <label className="block mb-2 text-lg font-semibold text-gray-700">Select Stablecoin:</label>
                                 <select
                                     value={token}
                                     onChange={(e) => setToken(e.target.value)}
-                                    className="w-full px-4 py-3 mb-6 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+                                    className="w-full px-4 py-3  font-bold text-black bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#39a96c] focus:border-transparent mb-4"
                                 >
                                     <option value="cUSD">cUSD</option>
                                     <option value="USDT">USDT</option>
                                 </select>
+                                
                             </>
                         )}
 
@@ -156,9 +193,10 @@ export default function Home() {
                                 onClick={() => handleModeChange('send')}
                                 className={`px-4 py-2 font-bold text-white rounded-2xl flex items-center ${mode === 'send' ? 'bg-[#39a96c]' : 'bg-gray-500'}`}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 mr-2">
-                                    <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                                </svg>
+                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="#ffffff" fill="none" className="w-6 h-6 mr-2">
+                    <path d="M21.0477 3.05293C18.8697 0.707363 2.48648 6.4532 2.50001 8.551C2.51535 10.9299 8.89809 11.6617 10.6672 12.1581C11.7311 12.4565 12.016 12.7625 12.2613 13.8781C13.3723 18.9305 13.9301 21.4435 15.2014 21.4996C17.2278 21.5892 23.1733 5.342 21.0477 3.05293Z" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M11.5 12.5L15 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                                 Send
                             </button>
                             <button
@@ -196,6 +234,17 @@ export default function Home() {
             )}
 
             <Modal isOpen={isModalOpen} onClose={handleModalClose} message={modalMessage} details={modalDetails} />
+
+            {/* Floating Send Message Button */}
+            <button
+                className="fixed p-4 text-white bg-[#39a96c] rounded-full shadow-lg bottom-4 right-4 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                onClick={() => window.open('https://wa.me/<your-phone-number>?text=Hello%20there!', '_blank')}
+            >   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="#ffffff" fill="none">
+            <path d="M21.0477 3.05293C18.8697 0.707363 2.48648 6.4532 2.50001 8.551C2.51535 10.9299 8.89809 11.6617 10.6672 12.1581C11.7311 12.4565 12.016 12.7625 12.2613 13.8781C13.3723 18.9305 13.9301 21.4435 15.2014 21.4996C17.2278 21.5892 23.1733 5.342 21.0477 3.05293Z" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M11.5 12.5L15 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+            </button>
+
         </div>
     );
 }

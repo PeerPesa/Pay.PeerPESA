@@ -16,6 +16,9 @@ module.exports = {
           secondary: "#EA3C58",
         },
       },
+      fontFamily: {
+        'harmony': ['HarmonyOS Sans', 'sans-serif'],
+      },
     },
   },
   plugins: [],

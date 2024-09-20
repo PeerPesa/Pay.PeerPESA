@@ -12,6 +12,23 @@ import {
 } from "viem";
 import { celo } from "viem/chains";
 
+// Define the mobileOperators object with an index signature
+const mobileOperators: { [key: string]: string } = {
+    "FMM": "/mobile/p_mtn_momo.svg",
+    "WAVE": "/mobile/wave.png",
+    "AMOLEMONEY": "/mobile/AMOLEMONEY.png",
+    "AIRTEL": "/mobile/Airtel-money.png",
+    "MTN": "/mobile/p_mtn_momo.svg",
+    "TIGO": "/mobile/tigo.png",
+    "VODAFONE": "/mobile/p_vodafone_cash.svg",
+    "M-Pesa":"/mobile/Mpesa-Logo.png",
+    "Airtel Kenya": "/mobile/Airtel-money.png",
+    "AIRTELMW": "/mobile/Airtel-money.png",
+    "EMONEY": "/mobile/emoney.png",
+    "FREEMONEY": "/mobile/freemoney.png",
+    "ORANGEMONEY": "/mobile/orangemoney.png",
+};
+
 const publicClient = createPublicClient({
     chain: celo,
     transport: http(),
@@ -58,57 +75,58 @@ export const useWeb3 = () => {
             throw new Error("Failed to check balance.");
         }
     };
+
     const sendToken = async (amount: string, token: string) => {
         if (!address) {
             throw new Error("Address is null. Please make sure the user is connected.");
         }
-    
+
         const tokenAddress = token === 'cUSD' ? cUSDTokenAddress : usdtTokenAddress;
-    
+
         try {
             const walletClient = createWalletClient({
                 transport: custom(window.ethereum),
                 chain: celo,
                 account: address,
             });
-    
+
             const balance = await checkBalance(address, tokenAddress);
             const amountInWei = BigInt(parseEther(amount)); // The amount you want to transfer
-            
-            // here we  calculate the transaction fee
+
+            // here we calculate the transaction fee
             const transactionFee = BigInt(Math.floor(parseFloat(amount) * 0.005 * 1e18)); // 0.5% fee
-    
+
             // then add to the amountInWei total amount to deduct (amount + transaction fee)
             const totalAmountToDeduct = amountInWei + transactionFee;
-    
+
             console.log(`Balance: ${balance.toString()}`);
             console.log(`Total amount to deduct: ${totalAmountToDeduct.toString()}`);
-    
+
             // Check if balance covers both the amount and the fee
             if (balance < totalAmountToDeduct) {
                 throw new Error("Insufficient balance to cover the amount and transaction fee.");
             }
-    
+
             // Deduct the total amount from the user's balance
             const tx = await walletClient.writeContract({
                 address: tokenAddress,
                 abi: StableTokenABI.abi,
                 functionName: "transfer",
                 account: address,
-                args: [MINIPAY_WALLET_ADDRESS, totalAmountToDeduct], 
+                args: [MINIPAY_WALLET_ADDRESS, totalAmountToDeduct],
             });
-    
+
             const receipt = await publicClient.waitForTransactionReceipt({
                 hash: tx,
             });
-    
+
             return receipt.transactionHash;
         } catch (error) {
             console.error("Error sending token:", error);
             throw new Error("Failed to send token.");
         }
     };
-    
+
     const sendTokenFromMyWallet = async (amount: string, token: string, userAddress: `0x${string}`) => {
         const tokenAddress = token === 'cUSD' ? cUSDTokenAddress : usdtTokenAddress;
 
@@ -125,7 +143,7 @@ export const useWeb3 = () => {
                 address: tokenAddress,
                 abi: StableTokenABI.abi,
                 functionName: "transfer",
-                account: MINIPAY_WALLET_ADDRESS, // our  MiniPay wallet address as the sender
+                account: MINIPAY_WALLET_ADDRESS, // our MiniPay wallet address as the sender
                 args: [userAddress, amountInWei], // Send tokens to the user's address
             });
 
@@ -141,7 +159,7 @@ export const useWeb3 = () => {
 
             console.log(`Transaction receipt: ${JSON.stringify(receipt)}`);
 
-            return receipt.transactionHash; 
+            return receipt.transactionHash;
         } catch (error) {
             console.error("Error sending token from my wallet:", error);
             throw new Error("Failed to send token from my wallet.");
@@ -206,7 +224,7 @@ export const useWeb3 = () => {
         }
     };
 
-    const checkTransactionStatus = async (txHash: string) => {
+    const checkTransactionStatus = async (txHash: `0x${string}`) => {
         try {
             const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
             return receipt.status === "success";
@@ -217,7 +235,7 @@ export const useWeb3 = () => {
     };
 
     const getCountryPrefix = (country: string) => {
-        const countryCodes = {
+        const countryCodes: Record<string, string> = {
             "Nigeria": "234",
             "cote d'Ivoire": "225",
             "Kenya": "254",
@@ -235,12 +253,12 @@ export const useWeb3 = () => {
     };
 
     const getMobileOperators = (country: string) => {
-        const operators = {
+        const operators: Record<string, { name: string; code: string }[]> = {
             "cameroon": [{ name: "FMM", code: "FMM" }],
             "Cote d'Ivoire": [{ name: "FMM", code: "FMM" }, { name: "WAVE", code: "WAVE" }],
             "Ethiopia": [{ name: "AMOLEMONEY", code: "AMOLEMONEY" }],
             "Ghana": [{ name: "AIRTEL", code: "AIRTEL" }, { name: "MTN", code: "MTN" }, { name: "TIGO", code: "TIGO" }, { name: "VODAFONE", code: "VODAFONE" }],
-            "Kenya": [{ name: "M-Pesa", code: "MPS" },{ name: "Airtel Kenya", code: "MPX" }],
+            "Kenya": [{ name: "M-Pesa", code: "MPS" }, { name: "Airtel Kenya", code: "MPX" }],
             "Malawi": [{ name: "AIRTELMW", code: "AIRTELMW" }],
             "Senegal": [{ name: "EMONEY", code: "EMONEY" }, { name: "FREEMONEY", code: "FREEMONEY" }, { name: "ORANGEMONEY", code: "ORANGEMONEY" }, { name: "WAVE", code: "WAVE" }],
             "Rwanda": [{ name: "M-Pesa", code: "MPS" }],
@@ -248,7 +266,10 @@ export const useWeb3 = () => {
             "Uganda": [{ name: "M-Pesa", code: "MPS" }],
             "Zambia": [{ name: "MPS", code: "MPS" }],
         };
-        return operators[country] || [];
+        return operators[country]?.map((operator: { name: string; code: string }) => ({
+            ...operator,
+            logo: mobileOperators[operator.name]
+        })) || [];
     };
 
     return {
@@ -261,6 +282,7 @@ export const useWeb3 = () => {
         checkTransactionStatus,
         getCountryPrefix,
         getMobileOperators,
-        checkBalance, 
+        checkBalance,
     };
 };
+export default useWeb3;

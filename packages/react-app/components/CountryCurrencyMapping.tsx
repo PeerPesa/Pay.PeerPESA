@@ -1,9 +1,9 @@
+// CountryCurrencyMapping.tsx
 type CountryCurrencyMappingType = {
     [key: string]: string;
   };
 
   export const countryCurrencyMapping: CountryCurrencyMappingType = {
-    "Nigeria": "NGN",
     "Kenya": "KES",
     "Ghana": "GHS",
     "Uganda": "UGX",

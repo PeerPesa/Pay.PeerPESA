@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Image from "next/image";
 import { countryCurrencyMapping } from '@/components/CountryCurrencyMapping';
 import PrimaryButton from '@/components/Button';
 import { useWeb3 } from '@/contexts/useWeb3';
 import { getCsrfToken } from '@/utils/csrf';
+import { Countries } from '@celo/phone-utils';
+import { mobileOperators } from './mobileOperators';
 
 interface SendCUSDComponentProps {
   token: string;
@@ -24,9 +27,14 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
   const [totalAmount, setTotalAmount] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<string | null>(null);
-  const [operators, setOperators] = useState<{ name: string, code: string }[]>([]);
+  const [operators, setOperators] = useState<{ name: string, code: string, logo: string }[]>([]);
+  const [transition, setTransition] = useState<boolean>(false);
+  const [direction, setDirection] = useState<string>('right');
+  const [phoneError, setPhoneError] = useState<string>('');
 
   const { sendToken, address, getUserAddress, checkTransactionStatus, getCountryPrefix, getMobileOperators } = useWeb3();
+
+  const countries = new Countries('en-us');
 
   useEffect(() => {
     getUserAddress();
@@ -66,6 +74,22 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
       setTotalAmount(null);
     }
   }, [amount]);
+
+  const validatePhoneNumber = (number: string) => {
+    const phoneNumberLength = number.replace(/\D/g, '').length;
+    return phoneNumberLength >= 7 && phoneNumberLength <= 15;
+  };
+
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    setPhoneNumber(input);
+
+    if (validatePhoneNumber(input)) {
+      setPhoneError('');
+    } else {
+      setPhoneError('Phone number must be between 7 and 15 digits.');
+    }
+  };
 
   async function sendingToken() {
     setSigningLoading(true);
@@ -126,27 +150,40 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
     }
   }
 
+  const handleStepChange = (newStep: number, direction: string) => {
+    setDirection(direction);
+    setTransition(true);
+    setTimeout(() => {
+      setStep(newStep);
+      setTransition(false);
+    }, 150); // Duration of the transition
+  };
+
   const renderStepContent = () => {
     switch (step) {
       case 1:
         return (
-          <div>
-            <label className="text-lg font-semibold text-white ">Select Country You want to send {token}:</label>
+          <div className={` font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
+            <label className="text-lg font-semibold text-gray-800">Choose destination</label>
             <select
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
-              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#39a96c]"
             >
-              {Object.keys(countryCurrencyMapping).map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
+              {Object.keys(countryCurrencyMapping).map((country) => {
+                const countryData = countries.getCountry(country);
+                return (
+                  <option key={country} value={country}>
+                    {countryData?.emoji} {country}
+                  </option>
+                );
+              })}
             </select>
+            <p className="text-sm text-green-600">country you want to send {token}</p>
             <div className="pt-4">
               <PrimaryButton
                 title="Next"
-                onClick={() => setStep(2)}
+                onClick={() => handleStepChange(2, 'right')}
                 widthFull={true}
                 disabled={!selectedCountry}
               />
@@ -155,103 +192,126 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
         );
       case 2:
         return (
-          <div>
-            <label className="text-lg font-semibold text-white">Enter Amount:</label>
+          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
+            <label className="text-lg font-semibold text-gray-800">Enter Amount:</label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#39a96c]"
               placeholder={`Amount in ${token}`}
             />
-            <label className="text-lg font-semibold text-white">Phone Number:</label>
+            <p className="text-sm text-green-600">The value of above {token} is : {convertedAmount} {currency}</p>
+            <label className="text-lg font-semibold text-gray-800">Phone Number:</label>
             <input
               type="tel"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
+              onChange={handlePhoneNumberChange}
+              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#39a96c]"
               placeholder="Your phone number"
             />
-            <label className="text-lg font-semibold text-white">Select Mobile Operator:</label>
-            <select
-              value={mobileOperator}
-              onChange={(e) => setMobileOperator(e.target.value)}
-              className="w-full px-4 py-3 font-bold text-black bg-white border border-gray-300 rounded-2xl"
-            >
-              <option value="" disabled>Select Operator</option>
+            {phoneError && <p className="text-sm text-red-600">{phoneError}</p>}
+            <p className="text-sm text-green-600">Recipient phone number.</p>
+            <label className="text-lg font-semibold text-gray-800">Select Mobile Operator:</label>
+            <div className="grid grid-cols-2 gap-4 pl-5">
               {operators.map(operator => (
-                <option key={operator.code} value={operator.code}>
-                  {operator.name}
-                </option>
+                <div
+                  key={operator.code}
+                  className={`flex items-center justify-center p-1 w-24 h-24 rounded-2xl cursor-pointer ${mobileOperator === operator.code ? 'border-2 border-green-600' : 'border-0'}`}
+                  onClick={() => setMobileOperator(operator.code)}
+                >
+                  <img
+                    src={operator.logo}
+                    alt={`${operator.name} logo`}
+                    className="object-contain w-20 h-20 rounded-2xl" // Adjusted to fit within the container
+                  />
+                </div>
               ))}
-            </select>
+              <p className="text-sm text-green-600">Mobile Operator for the number above </p>
+            </div>
             <div className="flex justify-between pt-6">
               <PrimaryButton
                 title="Previous"
-                onClick={() => setStep(1)}
+                onClick={() => handleStepChange(1, 'left')}
                 widthFull={false}
+                className="w-1/3 mr-4" // Adjust width and margin
               />
               <PrimaryButton
                 title="Next"
-                onClick={() => setStep(3)}
+                onClick={() => handleStepChange(3, 'right')}
                 widthFull={false}
-                disabled={!amount || !phoneNumber || !mobileOperator}
+                className="w-1/3 ml-4" // Adjust width and margin
+                disabled={!amount || !phoneNumber || !mobileOperator || phoneError  ? true : false}
               />
             </div>
           </div>
         );
       case 3:
         return (
-          <div className="text-lg font-semibold text-white w-full min-w-[301px] px-4 py-3">
+          <div className={` font-harmony relative transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full px-4 py-3 text-lg font-semibold text-gray-800`}>
+            <div className="absolute top-0 right-0 mt-2 mr-2">
+              <img src="/system-solid-5-wallet-hover-wallet (1).gif" alt="Logo" className="w-8 h-8" />
+            </div>
             {convertedAmount && (
-              <p className="text-gray-200">
-                Sending Amount: {convertedAmount} {currency}.
-              </p>
+             <p className="text-gray-600">
+             Sending Amount: <span className="text-green-600">{parseFloat(convertedAmount).toFixed(2)} {currency}</span>
+           </p>
+           
             )}
             {totalAmount && (
-              <p className="text-gray-200">
-                Total Amount to Deduct: {totalAmount} {token}.
+              <p className="text-gray-600">
+                Deducted Amount: <span className="text-green-600">{parseFloat(totalAmount).toFixed(2)} {token}</span>
               </p>
             )}
-            <p className="text-gray-200">
-              Phone Number: {phoneNumber}
+            <p className="text-gray-600">
+              Phone Number: <span className="text-green-600">{phoneNumber}</span>
             </p>
-            <p className="text-gray-200">
-              Country: {selectedCountry}
+            <p className="text-gray-600">
+              Country: <span className="text-green-600"> {selectedCountry}</span>
             </p>
-            <p className="text-gray-200">
-              Mobile Operator: {mobileOperator}
+            <p className="text-gray-600">
+              Mobile Operator: <span className="text-green-600">{mobileOperator}</span>
             </p>
             {error && <p className="text-red-500">{error}</p>}
             <div className="flex justify-between pt-6">
               <PrimaryButton
                 title="Previous"
-                onClick={() => setStep(2)}
+                onClick={() => handleStepChange(2, 'left')}
                 widthFull={false}
+                className="w-1/3 mr-4" // Adjust width and margin
               />
               <PrimaryButton
                 title="Send"
                 onClick={sendingToken}
                 widthFull={false}
+                className={`w-1/3 ml-4 ${!address ? "opacity-50 cursor-not-allowed" : ""}`} // Adjust width and margin
                 disabled={signingLoading || !address}
                 loading={signingLoading}
-                className={!address ? "opacity-50 cursor-not-allowed" : ""}
               />
             </div>
-            {txStatus && <p className="text-white">{txStatus}</p>}
+            {txStatus && <p className="text-gray-800">{txStatus}</p>}
             {!address && <p className="text-red-500">Address is null. Please make sure the user is connected.</p>}
           </div>
         );
       case 4:
         return (
-          <div>
-            <p className="text-lg font-semibold text-white w-full min-w-[301px] px-4 py-3">
+          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full min-w-[280px]`}>
+            <p className="text-lg font-semibold text-gray-800 w-full min-w-[301px] px-4 py-3">
               {txStatus}
             </p>
+            <div className="flex justify-center pt-6">
+                 <Image
+                   src="/wired-flat-37-approve-checked-simple-hover-pinch.gif" // Replace with your image path
+                   alt="Success"
+                   width={160} 
+                   height={200} 
+                  className="object-cover"
+                 />
+               </div>
             <div className="flex justify-between pt-6">
               <PrimaryButton
                 title="Finish"
-                onClick={() => setStep(1)}
+                onClick={() => handleStepChange(1, 'left')}
                 widthFull={true}
               />
             </div>
@@ -263,11 +323,11 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
   };
 
   return (
-    <div className="flex flex-col p-4 space-y-4 bg-gray-800 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-white">Send</h2>
-      {renderStepContent()}
-    </div>
+    <div className="flex flex-col max-w-sm p-6 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony">
+    <h2 className="text-2xl font-bold text-gray-800">Send Money</h2>
+    {renderStepContent()}
+  </div>
+  
   );
 };
-
 export default SendCUSDComponent;

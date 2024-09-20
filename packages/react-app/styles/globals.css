@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+    font-family: 'HarmonyOS Sans';
+    src: url('/fonts/HarmonyOS_Sans_Regular.ttf') format('ttf');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
