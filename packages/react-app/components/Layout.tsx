@@ -8,9 +8,9 @@ interface Props {
 const Layout: FC<Props> = ({ children }) => {
     return (
         <>
-            <div className="flex flex-col min-h-screen overflow-hidden font-harmony bg-gypsum">
+            <div className="flex flex-col min-h-screen bg-gray-100 font-harmony">
                 <Header />
-                <div className="mx-auto space-y-8 max-w-7xl sm:px-6 lg:px-8">
+                <div className="mx-auto space-y-8 max-w-7xl sm:px-4 md:px-6 lg:px-8">
                     {children}
                 </div>
                 <Footer />

@@ -15,6 +15,12 @@ module.exports = {
           primaryLight: "#CFF2E5",
           secondary: "#EA3C58",
         },
+        screens: {
+          'ms': '480px',  // Medium Small
+          'md': '768px',  // Medium
+          'lg': '1024px', // Large
+          'xl': '1280px', // Extra Large
+        },
       },
       fontFamily: {
         'harmony': ['HarmonyOS Sans', 'sans-serif'],

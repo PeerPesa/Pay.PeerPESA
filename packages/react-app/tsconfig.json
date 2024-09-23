@@ -21,9 +21,9 @@
       }
     ],
     "paths": {
-      "@/*": ["*"],
+      "@/*": ["*", "packages/react-app/*"],
       "@local-contracts/*": ["../hardhat/*"]
-    },
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "types", ".next/types/**/*.ts", "utils/csrf.ts"],
   "exclude": ["node_modules"]

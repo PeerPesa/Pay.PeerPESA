@@ -98,14 +98,16 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
       if (!address) {
         throw new Error('Address is null. Please make sure the user is connected.');
       }
-
+  
       if (!totalAmount || isNaN(Number(totalAmount)) || Number(totalAmount) <= 0) {
         throw new Error('Invalid total amount. Please enter a valid amount.');
       }
+      
       const txHash = await sendToken(totalAmount, token);
       setTx(txHash);
       const isSuccess = await checkTransactionStatus(txHash);
-      setTxStatus(isSuccess ? "Transaction successful" : "Transaction failed");  
+      setTxStatus(isSuccess ? "Transaction successful" : "Transaction failed");
+      
       if (isSuccess) {
         const csrfToken = await getCsrfToken();
         const response = await axios.post('/api/flutterwave-transfer', {
@@ -120,9 +122,10 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
           },
           withCredentials: true,
         });
-
+  
         const { data } = response;
         console.log('Transfer Response:', data);
+  
         const modalData = {
           status: data.status,
           id: data.data.id,
@@ -130,10 +133,32 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
           account_number: data.data.account_number,
           reference: data.data.reference,
           sender: data.data.meta && data.data.meta[0] ? data.data.meta[0].Sender : 'N/A',
-          amount: convertedAmount, 
+          amount: convertedAmount,
         };
         onModalOpen("Transaction Successful", modalData); 
-        setStep(4); 
+        setStep(4);
+  
+        // Updated status logic to treat 'NEW' and 'COMPLETED' as successful
+        const status = (data.status === 'success' || data.status === 'NEW' || data.status === 'COMPLETED')
+          ? 'COMPLETED'
+          : 'PENDING';
+        
+        await axios.post('/api/save-transaction', {
+          txHash: txHash,
+          amount: convertedAmount,
+          receiver: `${getCountryPrefix(selectedCountry)}${phoneNumber}`,
+          currency: currency,
+          country: selectedCountry,
+          operator: mobileOperator,
+          status: status, // Updated status
+          userAddress: address,
+        }, {
+          headers: {
+            'X-CSRF-Token': csrfToken,
+          },
+          withCredentials: true,
+        });
+  
       } else {
         onModalOpen("Transaction Failed", null);
       }
@@ -144,12 +169,12 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
       } else {
         setError('An unexpected error occurred.');
       }
-      onModalOpen("Transaction Error", error); 
+      onModalOpen("Transaction Error", error);
     } finally {
       setSigningLoading(false);
     }
   }
-
+    
   const handleStepChange = (newStep: number, direction: string) => {
     setDirection(direction);
     setTransition(true);
@@ -159,11 +184,12 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
     }, 150); // Duration of the transition
   };
 
+
   const renderStepContent = () => {
     switch (step) {
       case 1:
         return (
-          <div className={` font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
+          <div className={` font-harmony w-full transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
             <label className="text-lg font-semibold text-gray-800">Choose destination</label>
             <select
               value={selectedCountry}
@@ -217,13 +243,13 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
               {operators.map(operator => (
                 <div
                   key={operator.code}
-                  className={`flex items-center justify-center p-1 w-24 h-24 rounded-2xl cursor-pointer ${mobileOperator === operator.code ? 'border-2 border-green-600' : 'border-0'}`}
+                  className={`flex items-center justify-center w-16  h-12 rounded-xl cursor-pointer ${mobileOperator === operator.code ? 'border-2 border-green-600' : 'border-0'}`}
                   onClick={() => setMobileOperator(operator.code)}
                 >
                   <img
                     src={operator.logo}
                     alt={`${operator.name} logo`}
-                    className="object-contain w-20 h-20 rounded-2xl" // Adjusted to fit within the container
+                    className="object-contain w-16 h-18 rounded-2xl" // Adjusted to fit within the container
                   />
                 </div>
               ))}
@@ -248,62 +274,82 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
         );
       case 3:
         return (
-          <div className={` font-harmony relative transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full px-4 py-3 text-lg font-semibold text-gray-800`}>
-            <div className="absolute top-0 right-0 mt-2 mr-2">
-              <img src="/system-solid-5-wallet-hover-wallet (1).gif" alt="Logo" className="w-8 h-8" />
-            </div>
-            {convertedAmount && (
-             <p className="text-gray-600">
-             Sending Amount: <span className="text-green-600">{parseFloat(convertedAmount).toFixed(2)} {currency}</span>
-           </p>
-           
-            )}
-            {totalAmount && (
-              <p className="text-gray-600">
-                Deducted Amount: <span className="text-green-600">{parseFloat(totalAmount).toFixed(2)} {token}</span>
-              </p>
-            )}
-            <p className="text-gray-600">
-              Phone Number: <span className="text-green-600">{phoneNumber}</span>
-            </p>
-            <p className="text-gray-600">
-              Country: <span className="text-green-600"> {selectedCountry}</span>
-            </p>
-            <p className="text-gray-600">
-              Mobile Operator: <span className="text-green-600">{mobileOperator}</span>
-            </p>
-            {error && <p className="text-red-500">{error}</p>}
-            <div className="flex justify-between pt-6">
-              <PrimaryButton
-                title="Previous"
-                onClick={() => handleStepChange(2, 'left')}
-                widthFull={false}
-                className="w-1/3 mr-4" // Adjust width and margin
-              />
-              <PrimaryButton
-                title="Send"
-                onClick={sendingToken}
-                widthFull={false}
-                className={`w-1/3 ml-4 ${!address ? "opacity-50 cursor-not-allowed" : ""}`} // Adjust width and margin
-                disabled={signingLoading || !address}
-                loading={signingLoading}
-              />
-            </div>
-            {txStatus && <p className="text-gray-800">{txStatus}</p>}
-            {!address && <p className="text-red-500">Address is null. Please make sure the user is connected.</p>}
+          <div className={`max-w-sm font-harmony relative transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full px-0 py-3 text-lg font-semibold text-gray-800`}>
+          <div className="absolute top-0 right-0 mt-2 mr-2">
+            <img src="/system-solid-5-wallet-hover-wallet (1).gif" alt="Logo" className="w-8 h-8" />
           </div>
+        
+          {convertedAmount && (
+            <p className="text-gray-600 break-words">
+              Sending Amount: <span className="text-green-600">{parseFloat(convertedAmount).toFixed(2)} {currency}</span>
+            </p>
+          )}
+        
+          {totalAmount && (
+            <p className="text-gray-600 break-words">
+              Deducted Amount: <span className="text-green-600">{parseFloat(totalAmount).toFixed(2)} {token}</span>
+            </p>
+          )}
+        
+          <p className="text-gray-600 break-words">
+            Phone Number: <span className="text-green-600">{phoneNumber}</span>
+          </p>
+        
+          <p className="text-gray-600 break-words">
+            Country: <span className="text-green-600">{selectedCountry}</span>
+          </p>
+        
+          <p className="text-gray-600 break-words">
+            Mobile Operator: <span className="text-green-600">{mobileOperator}</span>
+          </p>
+        
+          {error && <p className="text-red-500 break-words">{error}</p>}
+        
+          <div className="flex justify-between pt-6">
+            <PrimaryButton
+              title="Previous"
+              onClick={() => handleStepChange(2, 'left')}
+              widthFull={false}
+              className="w-1/3 mr-2"
+              style={{ minWidth: '80px' }}
+            />
+            
+            <PrimaryButton
+              title="Send"
+              onClick={sendingToken}
+              widthFull={false}
+              className={`w-1/3  ml-2 ${!address || signingLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={signingLoading || !address} // Button disabled during loading
+              style={{ minWidth: '80px' }} 
+            />
+          </div>
+        
+          {/* Loader below the button */}
+          {signingLoading && (
+            <div className="flex justify-center mt-4">
+              <img
+                src="/icons8-loading-circle.gif" // Replace with your loader GIF path
+                alt="Loading..."
+                className="w-8 h-8"
+              />
+            </div>
+          )}
+        
+          {!address && <p className="text-red-500 break-words">Address is null. Please make sure the user is connected.</p>}
+        </div>
+        
         );
       case 4:
         return (
-          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full min-w-[280px]`}>
-            <p className="text-lg font-semibold text-gray-800 w-full min-w-[301px] px-4 py-3">
+          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full `}>
+            <p className="w-full px-0 py-3 text-lg font-semibold text-gray-800">
               {txStatus}
             </p>
             <div className="flex justify-center pt-6">
                  <Image
                    src="/wired-flat-37-approve-checked-simple-hover-pinch.gif" // Replace with your image path
                    alt="Success"
-                   width={160} 
+                   width={120} 
                    height={200} 
                   className="object-cover"
                  />
@@ -313,6 +359,8 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
                 title="Finish"
                 onClick={() => handleStepChange(1, 'left')}
                 widthFull={true}
+                style={{ minWidth: '80px' }}
+                disabled={false}
               />
             </div>
           </div>
@@ -323,7 +371,7 @@ export const SendCUSDComponent = ({ token, onModalOpen, step, setStep }: SendCUS
   };
 
   return (
-    <div className="flex flex-col max-w-sm p-6 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony">
+    <div className="flex flex-col max-w-sm p-8 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony">
     <h2 className="text-2xl font-bold text-gray-800">Send Money</h2>
     {renderStepContent()}
   </div>

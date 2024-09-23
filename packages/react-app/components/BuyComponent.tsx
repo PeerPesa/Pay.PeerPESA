@@ -6,10 +6,7 @@ import Image from "next/image";
 import { useWeb3 } from '@/contexts/useWeb3';
 import { getCsrfToken } from '@/utils/csrf';
 import { Countries } from '@celo/phone-utils';
-
-// Declare FlutterwaveCheckout to avoid TypeScript errors
 declare const FlutterwaveCheckout: any;
-
 export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: number) => void }) => {
   const [buyToken, setBuyToken] = useState<string>('cUSD');
   const [amount, setAmount] = useState<string>('');
@@ -37,7 +34,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
     };
 
     loadFlutterwaveScript();
-    getUserAddress(); // Get the user's address when the component mounts
+    getUserAddress(); 
   }, [getUserAddress]);
 
   useEffect(() => {
@@ -71,8 +68,6 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
-
-    // Email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
       setEmailError("Please enter a valid email address.");
@@ -84,8 +79,6 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPhoneNumber(value);
-
-    // Phone number validation
     if (value.length < 7 || value.length > 15) {
       setPhoneError("Phone number must be between 7 and 15 digits.");
     } else {
@@ -107,7 +100,6 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
       });
 
       if (response.data.success) {
-        // Initiate token transfer
         const txHash = await sendTokenFromMyWallet(amount, buyToken, address as `0x${string}`);
         console.log(`Transaction successful with hash: ${txHash}`);
         setErrorMessage(null);
@@ -151,14 +143,13 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
         logo: "https://peerpesa.co/assets/images/logoIcon/favicon.png",
       },
       callback: async function (payment: any) {
-        // Send AJAX verification request to backend
         await verifyTransactionOnBackend(payment.transaction_id);
         modal.close();
       },
       onclose: async function (incomplete: any) {
         if (incomplete) {
           setErrorMessage("Payment was not successful. Please try again.");
-          setLoading(false); // Set loading to false if payment was not successful
+          setLoading(false); 
         }
       }
     });
@@ -170,7 +161,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
     setTimeout(() => {
       setStep(newStep);
       setTransition(false);
-    }, 150); // Duration of the transition
+    }, 150); 
   };
 
   const renderStepContent = () => {
@@ -231,13 +222,13 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
                 title="Previous"
                 onClick={() => handleStepChange(1, 'left')}
                 widthFull={false}
-                className="w-1/3 mr-4" // Adjust width and margin
+                className="w-1/3 mr-4" 
               />
               <PrimaryButton
                 title="Next"
                 onClick={() => handleStepChange(3, 'right')}
                 widthFull={false}
-                className="w-1/3 ml-4" // Adjust width and margin
+                className="w-1/3 ml-4" 
                 disabled={!amount || !selectedCountry}
               />
             </div>
@@ -271,13 +262,13 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
                 title="Previous"
                 onClick={() => handleStepChange(2, 'left')}
                 widthFull={false}
-                className="w-1/3 mr-4" // Adjust width and margin
+                className="w-1/3 mr-4" 
               />
               <PrimaryButton
                 title="Next"
                 onClick={() => handleStepChange(4, 'right')}
                 widthFull={false}
-                className="w-1/3 ml-4" // Adjust width and margin
+                className="w-1/3 ml-4" 
                 disabled={!email || !phoneNumber || emailError || phoneError ? true : false}
               
               />
@@ -286,7 +277,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
         );
       case 4:
         return (
-          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full min-w-[290px]`}>
+          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full`}>
             {localCurrencyAmount !== null && (
               <p className="w-full px-4 py-3 font-bold text-gray-600">
                 You will pay: <span className="text-green-600">{(localCurrencyAmount * 1.005).toFixed(2)} {currency}.</span> 
@@ -306,13 +297,13 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
                 title="Previous"
                 onClick={() => handleStepChange(3, 'left')}
                 widthFull={false}
-                className="w-1/3 mr-4" // Adjust width and margin
+                className="w-1/3 mr-4" 
               />
               <PrimaryButton
-                title={`Buy ${buyToken}`}
+                title={`Buy`}
                 onClick={makePayment}
                 widthFull={false}
-                className="w-1/3 ml-4" // Adjust width and margin
+                className="w-1/3 ml-4" 
                 loading={loading}
               />
             </div>
@@ -322,11 +313,11 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
         );
       case 5:
         return (
-          <div className={`transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full min-w-[290px] px-4 py-3 font-harmony`}>
+          <div className={`transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full  px-4 py-3 font-harmony`}>
             <p className="text-lg font-semibold text-gray-800">Transaction Complete!</p>
             <div className="flex justify-center pt-6">
                  <Image
-                   src="/wired-flat-37-approve-checked-simple-hover-pinch.gif" // Replace with your image path
+                   src="/wired-flat-37-approve-checked-simple-hover-pinch.gif"
                    alt="Success"
                    width={160} 
                    height={200} 
@@ -349,11 +340,10 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
   };
 
   return (
-    <div className="flex flex-col p-6 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony">
-    <h2 className="text-2xl font-bold text-gray-800">Buy {buyToken}</h2>
-    {renderStepContent()}
-  </div>
-  
+    <div className="flex flex-col max-w-sm p-6 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony">
+      <h2 className="text-2xl font-bold text-gray-800">Buy {buyToken}</h2>
+      {renderStepContent()}
+    </div>
   );
 };
 

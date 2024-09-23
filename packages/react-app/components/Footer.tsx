@@ -59,26 +59,28 @@ const navigation = [
 
 export default function Footer() {
   return (
-    <footer className="mt-auto bg-gray-200 text-light-gray">
-      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
-        <div className="flex justify-center space-x-6 md:order-2">
-          {navigation.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              className="transition-colors duration-300 text-light-gray hover:text-white"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span className="sr-only">{item.name}</span>
-              <item.icon className="w-6 h-6" aria-hidden="true" />
-            </a>
-          ))}
-        </div>
-        <div className="mt-8 md:order-1 md:mt-0">
-          <p className="text-sm text-center text-light-gray">
-            &copy; {new Date().getFullYear()} PeerPesa. All rights reserved.
-          </p>
+    <footer className="mt-auto bg-gray-200 border-t border-gray-300 text-light-gray">
+      <div className="max-w-sm px-4 py-6 mx-auto sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center justify-between h-16 space-y-4">
+          <div className="flex space-x-6">
+            {navigation.map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className="transition-colors duration-300 text-light-gray hover:text-white"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="sr-only">{item.name}</span>
+                <item.icon className="w-6 h-6" aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+          <div>
+            <p className="text-sm text-center text-light-gray">
+              &copy; {new Date().getFullYear()} PeerPesa. All rights reserved.
+            </p>
+          </div>
         </div>
       </div>
     </footer>
