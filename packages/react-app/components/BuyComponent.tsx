@@ -169,7 +169,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
       case 1:
         return (
           <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
-            <label className="text-lg font-semibold text-gray-800">Select Token to Buy:</label>
+            <label className="text-base font-semibold text-gray-500">Select Token to Buy:</label>
             <select
               value={buyToken}
               onChange={(e) => setBuyToken(e.target.value)}
@@ -192,7 +192,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
       case 2:
         return (
           <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
-            <label className="text-lg font-semibold text-gray-800">Enter Amount:</label>
+            <label className="text-base font-semibold text-gray-500">Enter Amount:</label>
             <input
               type="number"
               value={amount}
@@ -201,7 +201,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
               placeholder={`Amount in ${buyToken}`}
             />
             <p className="text-sm text-green-600">The of {buyToken} you want to buy</p>
-            <label className="text-lg font-semibold text-gray-800">Select Country:</label>
+            <label className="text-base font-semibold text-gray-500">Select Country:</label>
             <select
               value={selectedCountry}
               onChange={handleCountryChange}
@@ -237,7 +237,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
       case 3:
         return (
           <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'}`}>
-            <label className="text-lg font-semibold text-gray-800">Email:</label>
+            <label className="text-base font-semibold text-gray-500">Email:</label>
             <input
               type="email"
               value={email}
@@ -247,7 +247,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
             />
             {emailError && <p className="text-sm text-red-600">{emailError}</p>}
             <p className="text-sm text-green-600">Provide a valid email</p>
-            <label className="text-lg font-semibold text-gray-800">Phone Number:</label>
+            <label className="text-base font-semibold text-gray-500">Phone Number:</label>
             <input
               type="tel"
               value={phoneNumber}
@@ -276,40 +276,46 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
           </div>
         );
       case 4:
-        return (
-          <div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full`}>
-            {localCurrencyAmount !== null && (
-              <p className="w-full px-4 py-3 font-bold text-gray-600">
-                You will pay: <span className="text-green-600">{(localCurrencyAmount * 1.005).toFixed(2)} {currency}.</span> 
-              </p>
-            )}
-            <p className="w-full px-4 py-3 font-bold text-gray-600">
-              Email: < span className="text-green-600">{email}</span> 
-            </p>
-            <p className="w-full px-4 py-3 font-bold text-gray-600">
-              Phone Number: <span className="text-green-600">{phoneNumber}</span> 
-            </p>
-            {errorMessage && (
-              <p className="text-red-500">{errorMessage}</p>
-            )}
-            <div className="flex justify-between pt-6">
-              <PrimaryButton
-                title="Previous"
-                onClick={() => handleStepChange(3, 'left')}
-                widthFull={false}
-                className="w-1/3 mr-4" 
-              />
-              <PrimaryButton
-                title={`Buy`}
-                onClick={makePayment}
-                widthFull={false}
-                className="w-1/3 ml-4" 
-                loading={loading}
-              />
-            </div>
-            <p className="mt-3 text-sm font-bold text-black ">Note:</p>
-            <p className="text-sm text-green-600 ">You will be redirected to flutterwave to make your payment</p>
-          </div>
+        return (<div className={`font-harmony transition-transform duration-150 ease-in-out ${transition ? (direction === 'right' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0') : 'translate-x-0 opacity-100'} w-full`}>
+        {localCurrencyAmount !== null && (
+          <p className="w-full py-3 -ml-2 font-bold text-gray-500">  {/* Removed px-4 and added negative margin */}
+            You will pay: <span className="text-green-600">{(localCurrencyAmount * 1.005).toFixed(2)} {currency}.</span> 
+          </p>
+        )}
+        <p className="w-full py-3 -ml-2 font-bold text-gray-500">  {/* Removed px-4 and added negative margin */}
+          Email: <span className="text-green-600">{email}</span> 
+        </p>
+        <p className="w-full py-3 -ml-2 font-bold text-gray-500">  {/* Removed px-4 and added negative margin */}
+          Phone Number: <span className="text-green-600">{phoneNumber}</span> 
+        </p>
+        {errorMessage && (
+          <p className="-ml-2 text-red-500"> {/* Added negative margin */}
+            {errorMessage}
+          </p>
+        )}
+        <div className="flex justify-between pt-6">
+          <PrimaryButton
+            title="Previous"
+            onClick={() => handleStepChange(3, 'left')}
+            widthFull={false}
+            className="w-1/3 mr-4" 
+          />
+          <PrimaryButton
+            title={`Buy`}
+            onClick={makePayment}
+            widthFull={false}
+            className="w-1/3 ml-4" 
+            loading={loading}
+          />
+        </div>
+        <p className="mt-3 -ml-2 text-sm font-bold text-black"> {/* Added negative margin */}
+          Note:
+        </p>
+        <p className="-ml-2 text-sm text-green-600"> {/* Added negative margin */}
+          You will be redirected to Flutterwave to make your payment.
+        </p>
+      </div>
+      
         );
       case 5:
         return (
@@ -341,7 +347,7 @@ export const BuyComponent = ({ step, setStep }: { step: number, setStep: (step: 
 
   return (
     <div className="flex flex-col max-w-sm p-6 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony">
-      <h2 className="text-2xl font-bold text-gray-800">Buy {buyToken}</h2>
+      <h2 className="text-lg font-bold text-gray-500">Buy {buyToken}</h2>
       {renderStepContent()}
     </div>
   );

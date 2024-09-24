@@ -48,7 +48,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ recentTransacti
 
     return (
         <div className="flex flex-col w-full max-w-sm p-2 mt-8 space-y-4 bg-white rounded-2xl shadow-3xl shadow-black/50 font-harmony ms:max-w-md md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
-              <h2 className="mt-2 mb-3 ml-3 text-2xl font-semibold text-gray-800">Recent Transactions</h2>
+              <h2 className="mt-2 mb-3 ml-3 text-lg font-semibold text-gray-500">Recent Transactions</h2>
         {recentTransactions.length > 0 ? (
           <>
             <ul className={`grid grid-cols-1 gap-2 ${showAll ? 'h-90 overflow-y-auto' : ''}`}>

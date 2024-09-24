@@ -54,7 +54,7 @@ export default function Home() {
 
         fetchRecentTransactions(); 
 
-        const intervalId = setInterval(fetchRecentTransactions, 5000);
+        const intervalId = setInterval(fetchRecentTransactions, 500000);
 
         return () => clearInterval(intervalId); 
     }, [address]);
@@ -166,7 +166,7 @@ export default function Home() {
                     <div className="w-full px-2 mt-4">
                         {mode === 'send' && (
                             <>
-                               <label className="block mb-2 text-lg font-semibold text-gray-700">Select Stablecoin:</label>
+                               <label className="block mb-2 text-lg font-semibold text-gray-500">Select Stablecoin:</label>
                                 <select
                                     value={token}
                                     onChange={(e) => setToken(e.target.value)}

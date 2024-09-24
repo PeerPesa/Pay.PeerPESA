@@ -1,4 +1,4 @@
-// pages/api/verifyTransaction.ts
+
 import { NextApiRequest, NextApiResponse } from 'next';
 import Flutterwave from 'flutterwave-node-v3';
 import csurf from 'csurf';

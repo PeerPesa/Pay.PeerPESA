@@ -26,21 +26,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
-    const { amount, receiver, currency, country, operator } = req.body;
+    const { amount, receiver, currency, country, operator,name } = req.body;
     const account_bank = operator || "MPS";
     const account_number = receiver;
 
-    console.log('Initiating Flutterwave transfer:', { amount, account_number, currency, country, account_bank });
+    console.log('Initiating Flutterwave transfer:', { amount, account_number, currency, country, account_bank,name });
 
     try {
         const response = await axios.post('https://api.flutterwave.com/v3/transfers', {
             account_bank: account_bank,
             account_number: account_number,
-            beneficiary_name: "Jerry Ouma",  // Replace with actual beneficiary name
+            beneficiary_name:name, 
             amount: amount,
             currency: currency,
             reference: `PEERPESA_${Date.now()}`,
-            callback_url: "https://2613-197-232-61-238.ngrok-free.app/api/flutterwave-callback",
+            callback_url: "http://localhost:3000//api/flutterwave-callback",
             debit_currency: "NGN",
             meta: {
                 sender: "peerpesa",

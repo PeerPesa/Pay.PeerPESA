@@ -10,6 +10,8 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, message, details }) => {
     if (!isOpen) return null;
 
+    console.log(details); // Log the details object to check its contents
+
     const isTransactionSuccessful = details && details.status === 'success'; // Check success status
 
     return (
@@ -72,6 +74,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, message, details }) => {
                             <p><strong>Reference:</strong> {details.reference || 'N/A'}</p>
                             <p><strong>Sender:</strong> {details.sender || 'N/A'}</p>
                             <p><strong>Amount:</strong> {details.amount || 'N/A'}</p>
+                            <p><strong>Beneficiary Name:</strong> {details.full_name || 'N/A'}</p> {/* Added line */}
                         </div>
                     </>
                 )}
